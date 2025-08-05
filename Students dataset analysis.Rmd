@@ -1,0 +1,597 @@
+---
+title: "final project 4820"
+author: "Irtza Shahan 100437138"
+date: "2025-07-27"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+## Loading the dataset
+
+df <- read.table("Students.dat", header = TRUE, sep = "")  # adjust sep if needed
+View(df)
+attach(df)
+str(df)
+```
+
+
+## Checking for missing values
+
+```{r}
+colSums(is.na(df))
+```
+```{r}
+# Categorical columns
+cat_vars <- c('subject',"gender", "aids", "veg", "affil", "ideol", "relig", "abor", "affirm", "life")
+
+# Converting to factor
+df[cat_vars] <- lapply(df[cat_vars], as.factor)
+
+```
+
+
+#checking for numerical columns
+
+```{r}
+numerical_cols <- names(df)[sapply(df, is.numeric)]
+print(numerical_cols)
+```
+# Create boxplots 
+```{r}
+par(mfrow = c(2, 2))
+
+for (col in numerical_cols) {
+  boxplot(df[[col]],
+          main = paste( col),
+          col = "lightblue",
+          border = "darkblue",
+          ylab = col,
+          cex.main = 1.5,     # Increase title size
+          cex.axis = 1.2,     # Increase axis text
+          cex.lab = 1.2)      # Increase axis label size
+}
+
+```
+
+
+# Count outliers using IQR method
+
+```{r}
+library(dplyr)
+# Convert df to tibble
+df_tbl <- as_tibble(df)
+
+# Identify numeric columns
+numerical_cols <- names(df_tbl)[sapply(df_tbl, is.numeric)]
+
+# Count outliers per numeric column using IQR method
+outlier_counts <- df_tbl %>%
+  dplyr::select(all_of(numerical_cols)) %>%
+  summarise(across(everything(), ~ sum(
+    . < quantile(., 0.25, na.rm = TRUE) - 1.5 * IQR(., na.rm = TRUE) |
+    . > quantile(., 0.75, na.rm = TRUE) + 1.5 * IQR(., na.rm = TRUE)
+  )))
+
+# View result
+print(outlier_counts)
+```
+
+here the dataset is small and outliers are not that extreme so we are not going to remove them.
+
+
+## Creating QQ plots for checking normality
+
+```{r}
+
+# Plotting layout: 3 rows x 3 columns
+par(mfrow = c(2, 2), mar = c(5, 5, 4, 2))  
+
+# Generating Q-Q plots
+for (col in numerical_cols) {
+  qqnorm(df[[col]],
+         main = paste(col),
+         col = "darkblue",
+         pch = 19,
+         cex.main = 1.5,  
+         cex.lab = 1.3,   
+         cex.axis = 1.2)  
+  
+  qqline(df[[col]], col = "red", lwd = 2)
+}
+```
+
+# Apply Shapiro-Wilk test for all numeric variables
+
+```{r}
+shapiro_results <- sapply(df[numerical_cols], function(x) shapiro.test(x)$p.value)
+print(round(shapiro_results, 4))
+
+```
+
+
+# Create the scatterplot matrix
+```{r}
+
+library(PerformanceAnalytics)
+dev.new(width = 16, height = 12)
+chart.Correlation(df[,numerical_cols],
+                  main = "Scatterplot Matrix of Numerical Variables")
+```
+
+# attaching df again from file to undo changes done for eda
+```{r}
+df <- read.table("Students.dat", header = TRUE, sep = "")  # adjust sep if needed
+attach(df)
+```
+
+
+# making list of all potential explanatory variables
+
+```{r}
+all_vars = c(cat_vars,numerical_cols)
+all_explanatory_vars = all_vars[!all_vars %in% c("abor", "subject")]
+all_explanatory_vars
+```
+
+
+## full- model fitting
+
+```{r}
+full_model <- glm(abor ~ gender+age+hsgpa+cogpa+dhome+dres+tv+sport+news+aids+veg+affil+ideol+relig+affirm+life, data = df, family = binomial)
+summary(full_model)
+
+```
+Since All P-Values are close to 1 in full model, We will check with making individual model with each variable separately.
+
+#Models with individual variables
+
+```{r}
+# Model 1:
+model1 <- glm(abor ~ gender, data = df, family = binomial)
+summary(model1)
+
+# Model 2:
+model2 <- glm(abor ~ veg, data = df, family = binomial)
+summary(model2)
+
+# Model 3:
+model3 <- glm(abor ~ affil, data = df, family = binomial)
+summary(model3)
+
+# Model 4:
+model4 <- glm(abor ~ relig, data = df, family = binomial)
+summary(model4)
+
+# Model 5:
+model5 <- glm(abor ~ affirm, data = df, family = binomial)
+summary(model5)
+
+# Model 6:
+model6 <- glm(abor ~ life, data = df, family = binomial)
+summary(model6)
+
+# Model 7:
+model7 <- glm(abor ~ age, data = df, family = binomial)
+summary(model7)
+
+# Model 8:
+model8 <- glm(abor ~ hsgpa, data = df, family = binomial)
+summary(model8)
+
+# Model 9:
+model9 <- glm(abor ~ cogpa, data = df, family = binomial)
+summary(model9)
+
+# Model 10:
+model10 <- glm(abor ~ dhome, data = df, family = binomial)
+summary(model10)
+
+# Model 11:
+model11 <- glm(abor ~ dres, data = df, family = binomial)
+summary(model11)
+
+# Model 12:
+model12 <- glm(abor ~ tv, data = df, family = binomial)
+summary(model12)
+
+# Model 13:
+model13 <- glm(abor ~ sport, data = df, family = binomial)
+summary(model13)
+
+# Model 14:
+model14 <- glm(abor ~ news, data = df, family = binomial)
+summary(model14)
+
+# Model 15:
+model15 <- glm(abor ~ aids, data = df, family = binomial)
+summary(model15)
+
+# Model 16:
+model16 <- glm(abor ~ ideol, data = df, family = binomial)
+summary(model16)
+
+```
+
+According to running all of above models with individual variables we find that 6 of the below variables are the significant ones using p-value < 0.2
+```{r}
+significant_vars = c("relig","affirm","life","tv","news","ideol")
+significant_vars
+
+```
+
+## model1
+
+```{r}
+model1 <- glm(abor ~ relig+affirm+life+tv+news+ideol,
+                  data = df, family = binomial)
+summary(model1)
+```
+still model doesn't look good so we are moving on to puprposfull selection
+
+## purposeful selection
+
+
+```{r}
+
+# Model A: Drop relig
+model_A <- glm(abor ~ affirm + life + tv + news + ideol,
+               data = df, family = binomial)
+```
+## anova
+
+**hypothesis**
+$H_0:$ The reduced model without religion variable is significant.
+$H_a:$ The religion variable is significant.  .
+
+```{r}
+
+anova(model_A,model1)
+
+```
+Here p value = 0.4257 which is greater than alpha, so we failed to reject the null hypothesis. So we can say The reduced model without religion variable is better.
+relig: drop
+
+```{r}
+# Model B: Drop affirm
+model_B <- glm(abor ~ relig + life + tv + news + ideol,
+               data = df, family = binomial)
+```
+## anova
+
+**hypothesis**
+$H_0:$ The reduced model without affirm variable is significant.
+$H_a:$ The affirm variable is significant.  .
+
+```{r}
+
+anova(model_B,model1)
+
+```
+
+Here p value = 0.5006 which is greater than alpha, so we failed to reject the null hypothesis. So we can say The reduced model without affirm variable is a better fit.
+affirm : drop
+
+
+```{r}
+# Model C: Drop life
+model_C <- glm(abor ~ relig + affirm + tv + news + ideol,
+               data = df, family = binomial)
+```
+
+
+#anova
+
+**hypothesis**
+$H_0:$ The reduced model without life variable is significant.
+$H_a:$ The life variable is significant.  .
+
+```{r}
+anova(model_C,model1)
+
+```
+Here p value = 0.2127 which is greater than alpha, so we failed to reject the null hypothesis. So we can say The reduced model without life variable is better fit
+life: drop
+
+
+```{r}
+# Model D: Drop tv
+model_D <- glm(abor ~ relig + affirm + life + news + ideol,
+               data = df, family = binomial)
+```
+
+#anova
+
+**hypothesis**
+$H_0:$ The reduced model without tv variable is significant.
+$H_a:$ The tv variable is significant.  
+
+```{r}
+anova(model_D,model1)
+```
+Here p value = 0.1762 which is greater than alpha, so we failed to reject the null hypothesis. So we can say The reduced model without tv variable is better fit.
+tv: drop
+
+```{r}
+
+# Model E: Drop news
+model_E <- glm(abor ~ relig + affirm + life + tv + ideol,
+               data = df, family = binomial)
+```
+
+
+#anova
+
+**hypothesis**
+$H_0:$ The reduced model without news variable is significant.
+$H_a:$ The news variable is significant.  
+
+```{r}
+anova(model_E,model1)
+```
+Here p value = 0.007279  which is less than alpha, so we  reject the null hypothesis. So we can say The news variable is significant.
+news: keep
+
+```{r}
+
+# Model F: Drop ideol
+model_F <- glm(abor ~ relig+affirm+life+tv+news,
+                  data = df, family = binomial)
+```
+
+
+#anova
+
+**hypothesis**
+$H_0:$ The reduced model without ideol variable is significant.
+$H_a:$ The ideol variable is significant.
+
+```{r}
+anova(model_F,model1)
+```
+Here p value = 0.005203  which is less than alpha, so we  reject the null hypothesis. So we can say The ideol variable is significant.
+ideal: keep
+
+# model with significant variable after purposeful selection 
+
+```{r}
+# Base model with only significant variables
+base_model <- glm(abor ~ news + ideol, data = df, family = binomial)
+summary(base_model)
+```
+#New models with one additional variable added to news + ideol
+
+```{r}
+model_gender <- glm(abor ~ news + ideol + gender, data = df, family = binomial)
+model_age    <- glm(abor ~ news + ideol + age, data = df, family = binomial)
+model_hsgpa  <- glm(abor ~ news + ideol + hsgpa, data = df, family = binomial)
+model_cogpa  <- glm(abor ~ news + ideol + cogpa, data = df, family = binomial)
+model_dhome  <- glm(abor ~ news + ideol + dhome, data = df, family = binomial)
+model_dres   <- glm(abor ~ news + ideol + dres, data = df, family = binomial)
+model_sport  <- glm(abor ~ news + ideol + sport, data = df, family = binomial)
+model_aids   <- glm(abor ~ news + ideol + aids, data = df, family = binomial)
+model_veg    <- glm(abor ~ news + ideol + veg, data = df, family = binomial)
+model_affil  <- glm(abor ~ news + ideol + affil, data = df, family = binomial)
+
+```
+
+# anova test with other additional variable with base model
+
+#Gender
+
+**hypothesis**
+$H_0:$ Gender does not significantly improve model fit beyond news and ideol.
+$H_a:$ Gender significantly improves model fit.
+
+```{r}
+anova(base_model, model_gender)
+```
+Here p value = 0.9703 which is greater than alpha, so we failed to reject the null hypothesis. So we can say Gender does not significantly improve model fit beyond news and ideol.
+
+#Age
+
+**hypothesis**
+$H_0:$ Age does not significantly improve model fit beyond news and ideol.
+$H_a:$ Age significantly improves model fit.
+
+```{r}
+anova(base_model, model_age)
+
+```
+Here p value = 0.5051 which is greater than alpha, so we failed to reject the null hypothesis. So we can say Age does not significantly improve model fit beyond news and ideol.
+
+#HSGPA
+
+**hypothesis**
+$H_0:$ HSGPA does not significantly improve model fit beyond news and ideol.
+$H_a:$ HSGPA significantly improves model fit.
+
+```{r}
+anova(base_model, model_hsgpa)
+
+```
+Here p value = 0.04364 which is less than alpha, so we reject the null hypothesis. So we can say HSGPA significantly improves model fit.
+
+#COGPA
+
+**hypothesis**
+$H_0:$ COGPA does not significantly improve model fit beyond news and ideol.
+$H_a:$ COGPA significantly improves model fit.
+
+```{r}
+anova(base_model, model_cogpa)
+
+```
+Here p value = 0.7106 which is greater than alpha, so we failed to reject the null hypothesis. So we can say COGPA does not significantly improve model fit beyond news and ideol.
+
+#Dhome
+
+**hypothesis**
+$H_0:$ Dhome does not significantly improve model fit beyond news and ideol.
+$H_a:$ Dhome significantly improves model fit.
+
+```{r}
+anova(base_model, model_dhome)
+```
+Here p value = 0.6996 which is greater than alpha, so we failed to reject the null hypothesis. So we can say Dhome does not significantly improve model fit beyond news and ideol.
+
+#Dres
+
+
+**hypothesis**
+$H_0:$ Dres does not significantly improve model fit beyond news and ideol.
+$H_a:$ Dres significantly improves model fit.
+
+```{r}
+anova(base_model, model_dres)
+
+```
+Here p value = 0.2278 which is greater than alpha, so we failed to reject the null hypothesis. So we can say Dres does not significantly improve model fit beyond news and ideol.
+
+#Sport
+
+**hypothesis**
+$H_0:$ Sport does not significantly improve model fit beyond news and ideol.
+$H_a:$ Sport significantly improves model fit.
+
+```{r}
+anova(base_model, model_sport)
+
+```
+Here p value =  0.8242 which is greater than alpha, so we failed to reject the null hypothesis. So we can say Sport does not significantly improve model fit beyond news and ideol.
+
+#AIDS
+
+**hypothesis**
+$H_0:$ AIDS does not significantly improve model fit beyond news and ideol.
+$H_a:$ AIDS significantly improves model fit.
+
+```{r}
+anova(base_model, model_aids)
+
+```
+Here p value =  0.4478 which is greater than alpha, so we failed to reject the null hypothesis. So we can say AIDS does not significantly improve model fit beyond news and ideol.
+
+#Veg
+
+
+**hypothesis**
+$H_0:$ Veg does not significantly improve model fit beyond news and ideol.
+$H_a:$ Veg significantly improves model fit.
+
+```{r}
+anova(base_model, model_veg)
+
+```
+Here p value =  0.9504 which is greater than alpha, so we failed to reject the null hypothesis. So we can say Veg does not significantly improve model fit beyond news and ideol.
+
+#Affil
+
+**hypothesis**
+$H_0:$ Affil does not significantly improve model fit beyond news and ideol.
+$H_a:$ Affil significantly improves model fit.
+
+```{r}
+anova(base_model, model_affil)
+
+```
+Here p value =  0.8364 which is greater than alpha, so we failed to reject the null hypothesis. So we can say Affil does not significantly improve model fit beyond news and ideol.
+
+#base model with one additional significant variable - HSGPA
+
+```{r}
+base_model_final = glm(abor ~ news + ideol + hsgpa, data = df, family = binomial)
+summary(base_model_final)
+```
+#base model with interaction - news*ideol+news*hsgpa+ideol*hsgpa/ base model final and base model with interaction
+```{r}
+base_model_final_inrc = glm(abor ~ news + ideol + hsgpa+ news*ideol+news*hsgpa+ideol*hsgpa, data = df, family = binomial)
+summary(base_model_final_inrc)
+
+```
+#anova
+
+**hypothesis**
+$H_0:$ The reduced model without interaction fits better
+$H_a;$ The full model with interaction fits better.
+
+#Reduced Model after backward elimination
+```{r}
+anova(base_model_final,base_model_final_inrc)
+
+```
+Here the p value = 0.6292, which is greater than alpha, we failed to reject the null hypothesis. So, we can say, The reduced model without interaction fits better.
+
+Therefore, we proceed with base_model_final because it balances simplicity, variables statistical significance without overfitting via unnecessary interaction terms.
+We also choose to keep hsgpa despite of having p - value of 0.0642, 
+- The p-value (0.0642) is close to 0.05, suggesting a possible effect that shouldn't be ignored.
+- hsgpa is theoretically relevant to the outcome (abor),
+- hsgpa helps reduce residual deviance, indicating that it contributes some predictive information, even if not strongly statistically significant on its own.
+
+
+
+## classification table
+
+```{r}
+predicted_probs <- predict(base_model_final, type = "response")
+
+predicted_class <- ifelse(predicted_probs >= 0.5, 1, 0)
+
+table(Predicted = predicted_class, Actual = df$abor)
+
+```
+The model correctly classified 55 out of 60 cases (accuracy = 91.7%), with only 2 false positives and 3 false negatives at a 0.5 cutoff.
+
+## ROC curve
+
+```{r}
+library(pROC)
+
+roc_obj <- roc(df$abor, predict(base_model_final, type = "response"))
+
+roc_obj1 <- roc(df$abor, predict(base_model_final_inrc, type = "response"))
+
+
+plot(roc_obj, main = "ROC Curve for Reduced Model", col = "blue", lwd = 2)
+plot.roc(roc_obj1, legacy.axes=TRUE, col="red",add=TRUE)
+
+abline(a = 0, b = 1, lty = 2, col = "gray")
+
+
+legend("bottomright",legend=c("Model without interaction","Model with interaction"),col=c("blue","red" ),lty=(1:1),cex=0.7)
+
+
+auc(roc_obj)
+auc(roc_obj1)
+
+```
+The AUC of 0.9452 indicates that the reduced model has excellent discriminatory power, accurately distinguishing between those who support and do not support abortion.
+with interaction model slight improvement does not justify added the added complexity
+
+## Multiple Correlation (Pseudo-R square)
+
+```{r}
+library(pscl)
+pR2(base_model_final)
+```
+The pseudo-R square of 0.55 indicates a strong model fit, meaning the base model without interaction explains a substantial portion of the variation in abortion support.
+
+
+**Final Conclusion**
+In this project, we aimed to model the likelihood of supporting abortion in the first trimester using demographic, behavioral, and ideological predictors. Through purposeful selection and statistical testing, we identified news (number of times one reads the newspaper), ideol (political ideology), and hsgpa (high school GPA) as the most informative predictors for abortion support.
+
+This model was chosen based on:
+
+- **Statistical Significance:**
+  news and ideol were statistically significant (p < 0.05), while hsgpa had a marginal p-value (0.0642) but was retained for its theoretical relevance and contribution to model fit.
+- **Model Simplicity:**
+  An interaction model with all pairwise terms was tested and rejected (p = 0.6292), confirming that the main-effects model is adequate.
+- **Prediction Accuracy:**
+  The model correctly classified 55 out of 60 cases .Accuracy = 91.7%, with only 2 false positives and 3 false negatives at a 0.5 cutoff. The AUC area is 0.9452 indicates accurately distinguishing between those who support and do not support abortion.
+  
